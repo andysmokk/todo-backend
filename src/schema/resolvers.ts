@@ -1,48 +1,85 @@
-let tasks = [
-  {
-    id: "ID-1",
-    title: "The Awakening",
-    description: "Kate Chopin",
-    completed: false,
-    dueDate: "2021-07-01",
-  },
-  {
-    id: "ID-2",
-    title: "City of Glass",
-    description: "Paul Auster",
-    completed: false,
-    dueDate: "2021-07-02",
-  },
-];
+import { v4 as uuidv4 } from "uuid";
+import { ApolloError } from "apollo-server-errors";
+
+import { Task, TaskInput } from "../types";
+import taskInputSchema from "../validation/taskInputSchema";
+
+let tasks: Task[] = [];
 
 const resolvers = {
   Query: {
     getAllTasks: () => tasks,
-    getTaskById: (_, { id }) => tasks.find((task) => task.id === id),
+    getTaskById: (_: any, { id }: { id: string }) => {
+      const task = tasks.find((task) => task.id === id);
+      if (!task) {
+        throw new Error(`Task not found.`);
+      }
+      return task;
+    },
   },
 
   Mutation: {
-    createTask: (_, { input }) => {
-      const newTask = { id: `ID-${tasks.length + 1}`, ...input };
+    createTask: (_: any, { input }: { input: TaskInput }) => {
+      try {
+        const updatedInput = {
+          ...input,
+          completed: false,
+        };
 
-      tasks.push(newTask);
+        taskInputSchema.parse(updatedInput);
 
-      return newTask;
+        const newTask = {
+          id: uuidv4(),
+          ...updatedInput,
+        };
+
+        tasks.push(newTask);
+
+        return newTask;
+      } catch (error: any) {
+        if (error.errors) {
+          throw new ApolloError("Validation failed", "403", {
+            details: error.errors.map((e: any) => ({
+              path: e.path,
+              message: e.message,
+            })),
+          });
+        }
+
+        throw new ApolloError("Internal Server Error", "500");
+      }
     },
 
-    updateTask: (_, { id, input }) => {
-      const index = tasks.findIndex((task) => task.id === id);
+    updateTask: (_: any, { id, input }: { id: string; input: TaskInput }) => {
+      const currentIndexTask = tasks.findIndex((task) => task.id === id);
 
-      if (index === -1) {
+      console.log(tasks[currentIndexTask]);
+
+      if (currentIndexTask === -1) {
         throw new Error("Task not found");
       }
 
-      tasks[index] = { ...tasks[index], ...input };
+      try {
+        taskInputSchema.parse(input);
+      } catch (error: any) {
+        if (error.errors) {
+          throw new ApolloError("Validation failed", "403", {
+            details: error.errors.map((e: any) => ({
+              path: e.path,
+              message: e.message,
+            })),
+          });
+        }
 
-      return tasks[index];
+        throw new ApolloError("Internal Server Error", "500");
+      }
+
+      tasks[currentIndexTask] = { ...tasks[currentIndexTask], ...input };
+
+      return tasks[currentIndexTask];
     },
 
-    deleteTask: (_, { id }) => {
+    deleteTask: (_: any, { id }: { id: string }) => {
       const index = tasks.findIndex((task) => task.id === id);
 
       if (index === -1) {

@@ -23,7 +23,7 @@ const typeDefs = gql`
   input TaskInput {
     title: String!
     description: String
-    completed: Boolean!
+    completed: Boolean
     dueDate: String!
   }
 `;

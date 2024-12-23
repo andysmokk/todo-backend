@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "strict": true,
     "rootDirs": [
       "src"
     ],
@@ -11,8 +12,10 @@
     "module": "esnext",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "types": [
-      "node"
+      "node",
+      "jest"
     ]
   }
 }
